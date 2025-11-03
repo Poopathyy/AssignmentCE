@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from tv_schedule_ga import read_csv_to_dict, genetic_algorithm
+from TV_Scheduling_Genetic_Algorithm import read_csv_to_dict, genetic_algorithm
 
 st.title("📺 TV Scheduling using Genetic Algorithm")
 
