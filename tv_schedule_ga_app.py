@@ -4,25 +4,25 @@ import csv
 import random
 
 # ================================
-# 1. Read CSV file automatically (no upload)
+# 1. Read CSV (no upload needed)
 # ================================
 def read_csv_to_dict(file_path):
     program_ratings = {}
     with open(file_path, mode='r', newline='') as file:
         reader = csv.reader(file)
-        header = next(reader)  # Skip header
+        header = next(reader)
         for row in reader:
             program = row[0]
             ratings = [float(x) for x in row[1:]]
             program_ratings[program] = ratings
     return program_ratings
 
-# Load your CSV directly from local folder
-file_path = "program_ratings.csv"   # <--- make sure this file is in the same folder as app.py
+# Load your CSV directly
+file_path = "program_ratings.csv"  # Ensure this file is in the same folder as app.py
 ratings = read_csv_to_dict(file_path)
 
 # ================================
-# 2. Define GA Functions (same as your original)
+# 2. GA Functions (same as your original)
 # ================================
 def fitness_function(schedule):
     total_rating = 0
@@ -95,36 +95,47 @@ def genetic_algorithm(initial_schedule, generations, population_size, crossover_
 # ================================
 st.title("📺 TV Scheduling using Genetic Algorithm")
 
-# Parameters
 all_programs = list(ratings.keys())
 all_time_slots = list(range(6, 24))  # 06:00–23:00
 
-st.sidebar.header("⚙️ GA Parameters")
-generations = st.sidebar.number_input("Generations", 10, 500, 100)
-population_size = st.sidebar.number_input("Population Size", 10, 200, 50)
+# Fixed GA parameters (display only)
+GEN = 100
+POP = 50
+EL_S = 2
+
+st.sidebar.header("⚙️ Genetic Algorithm Parameters")
+
+# Display fixed parameters (non-editable)
+st.sidebar.markdown("**Fixed Parameters:**")
+st.sidebar.write(f"Generations (GEN): {GEN}")
+st.sidebar.write(f"Population Size (POP): {POP}")
+st.sidebar.write(f"Elitism Size (EL_S): {EL_S}")
+
+# Adjustable parameters
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Adjustable Parameters:**")
 crossover_rate = st.sidebar.slider("Crossover Rate (CO_R)", 0.0, 0.95, 0.8, 0.01)
 mutation_rate = st.sidebar.slider("Mutation Rate (MUT_R)", 0.01, 0.05, 0.02, 0.01)
-elitism_size = st.sidebar.number_input("Elitism Size", 1, 5, 2)
 
 if st.button("Run Genetic Algorithm"):
-    # Initial setup
+    # Initialize schedules
     all_possible_schedules = initialize_pop(all_programs, all_time_slots)
     initial_best_schedule = finding_best_schedule(all_possible_schedules)
 
     rem_t_slots = len(all_time_slots) - len(initial_best_schedule)
     genetic_schedule = genetic_algorithm(
         initial_best_schedule,
-        generations,
-        population_size,
-        crossover_rate,
-        mutation_rate,
-        elitism_size,
-        all_programs
+        generations=GEN,
+        population_size=POP,
+        crossover_rate=crossover_rate,
+        mutation_rate=mutation_rate,
+        elitism_size=EL_S,
+        all_programs=all_programs
     )
 
     final_schedule = initial_best_schedule + genetic_schedule[:rem_t_slots]
 
-    # Make sure schedule matches all time slots
+    # Match time slots length
     num_slots = len(all_time_slots)
     if len(final_schedule) < num_slots:
         final_schedule += ["(Empty)"] * (num_slots - len(final_schedule))
@@ -144,4 +155,4 @@ if st.button("Run Genetic Algorithm"):
     st.success(f"⭐ Total Ratings: {total_rating:.2f}")
 
 else:
-    st.info("👈 Adjust the parameters and click 'Run Genetic Algorithm' to generate a schedule.")
+    st.info("👈 Adjust the crossover and mutation rate, then click **Run Genetic Algorithm** to view the schedule.")
