@@ -86,10 +86,20 @@ def genetic_algorithm(ratings, crossover_rate=0.8, mutation_rate=0.2, generation
     best_schedule = max(population, key=lambda s: fitness_function(s, ratings))
     total_rating = fitness_function(best_schedule, ratings)
 
-    # Convert to DataFrame for Streamlit display
-    schedule_df = pd.DataFrame({
-        "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
-        "Program": best_schedule[:len(all_time_slots)]
-    })
-    schedule_df["Total Rating"] = total_rating
+# Ensure same length between schedule and time slots
+all_time_slots = list(range(6, 24))
+programs_fixed = best_schedule[:len(all_time_slots)]
+
+# If the schedule is shorter, pad it with empty values
+if len(programs_fixed) < len(all_time_slots):
+    programs_fixed += ["-"] * (len(all_time_slots) - len(programs_fixed))
+
+schedule_df = pd.DataFrame({
+    "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
+    "Program": programs_fixed
+})
+
+# Add total rating info
+schedule_df["Total Rating"] = [""] * (len(all_time_slots) - 1) + [total_rating]
+
     return schedule_df, total_rating
