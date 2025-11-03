@@ -114,22 +114,22 @@ if uploaded_file is not None:
 
         # Display results
         st.subheader("🗓️ Final Optimal Schedule")
-num_slots = len(all_time_slots)
-program_list = best_schedule.copy()
-
-# If schedule shorter, pad with (Empty)
-if len(program_list) < num_slots:
-    program_list += ["(Empty)"] * (num_slots - len(program_list))
-
-# If schedule longer, trim it
-elif len(program_list) > num_slots:
-    program_list = program_list[:num_slots]
-
-# Build DataFrame safely
-result_df = pd.DataFrame({
-    "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
-    "Program": program_list
-})
+        num_slots = len(all_time_slots)
+        program_list = best_schedule.copy()
+        
+        # If schedule shorter, pad with (Empty)
+        if len(program_list) < num_slots:
+            program_list += ["(Empty)"] * (num_slots - len(program_list))
+        
+        # If schedule longer, trim it
+        elif len(program_list) > num_slots:
+            program_list = program_list[:num_slots]
+        
+        # Build DataFrame safely
+        result_df = pd.DataFrame({
+            "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
+            "Program": program_list
+        })
 
         st.dataframe(result_df)
         st.success(f"⭐ Total Ratings: {total_rating:.2f}")
