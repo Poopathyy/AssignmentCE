@@ -114,10 +114,12 @@ if uploaded_file is not None:
 
         # Display results
         st.subheader("🗓️ Final Optimal Schedule")
+        time_slots_to_show = all_time_slots[:len(best_schedule)]
         result_df = pd.DataFrame({
-            "Time Slot": [f"{t:02d}:00" for t in all_time_slots[:len(best_schedule)]],
-            "Program": best_schedule
+        "Time Slot": [f"{t:02d}:00" for t in time_slots_to_show],
+        "Program": best_schedule + ["(Empty)"] * (len(all_time_slots) - len(best_schedule))
         })
+
 
         st.dataframe(result_df)
         st.success(f"⭐ Total Ratings: {total_rating:.2f}")
