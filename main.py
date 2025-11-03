@@ -4,7 +4,7 @@ from tv_schedule_ga import read_csv_to_dict, genetic_algorithm
 
 st.title("📺 TV Scheduling using Genetic Algorithm")
 
-# --- Load Dataset ---
+# --- Load Dataset --
 ratings_file = "program_ratings.csv"
 ratings = read_csv_to_dict(ratings_file)
 
