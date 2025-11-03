@@ -5,19 +5,22 @@ import random
 from io import StringIO
 
 # ============================
-# 1. Helper Functions
+# 1. Read CSV and prepare data
 # ============================
-def read_csv_to_dict(uploaded_file):
-    stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-    reader = csv.reader(stringio)
-    header = next(reader)
+def read_csv_to_dict(file_path):
     program_ratings = {}
-    for row in reader:
-        program = row[0]
-        ratings = [float(x) for x in row[1:]]
-        program_ratings[program] = ratings
+    with open(file_path, mode='r', newline='') as file:
+        reader = csv.reader(file)
+        header = next(reader)
+        for row in reader:
+            program = row[0]
+            ratings = [float(x) for x in row[1:]]
+            program_ratings[program] = ratings
     return program_ratings
 
+# ============================
+# 2. GA Functions (imported from your original file)
+# ============================
 def fitness_function(schedule, ratings):
     total_rating = 0
     for time_slot, program in enumerate(schedule):
@@ -70,45 +73,51 @@ def genetic_algorithm(initial_schedule, ratings, generations, population_size, c
     return population[0]
 
 # ============================
-# 2. Streamlit Interface
+# 3. Streamlit Interface
 # ============================
 st.title("📺 TV Scheduling using Genetic Algorithm")
-st.subheader("Run and Compare 3 Separate Trials")
 
-uploaded_file = st.file_uploader("📂 Upload your program_ratings.csv file", type="csv")
+uploaded_file = st.file_uploader("Upload the program_ratings.csv file", type="csv")
 
-if uploaded_file:
-    program_ratings = read_csv_to_dict(uploaded_file)
+if uploaded_file is not None:
+    # Read CSV from upload
+    stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+    reader = csv.reader(stringio)
+    header = next(reader)
+    program_ratings = {}
+    for row in reader:
+        program = row[0]
+        ratings = [float(x) for x in row[1:]]
+        program_ratings[program] = ratings
+
     all_programs = list(program_ratings.keys())
     all_time_slots = list(range(6, 24))
 
-    # Loop through 3 trials
-    for trial in range(1, 4):
-        st.markdown(f"### 🧪 Trial {trial}")
+    st.subheader("⚙️ Genetic Algorithm Parameters")
+    generations = st.number_input("Number of Generations", 10, 500, 100)
+    population_size = st.number_input("Population Size", 10, 100, 50)
+    crossover_rate = st.slider("Crossover Rate (CO_R)", 0.0, 0.95, 0.8, 0.01)
+    mutation_rate = st.slider("Mutation Rate (MUT_R)", 0.01, 0.05, 0.02, 0.01)
+    elitism_size = st.number_input("Elitism Size", 1, 5, 2)
 
-        generations = st.number_input(f"Trial {trial} - Generations", 10, 500, 100, key=f"gen{trial}")
-        population_size = st.number_input(f"Trial {trial} - Population Size", 10, 100, 50, key=f"pop{trial}")
-        crossover_rate = st.slider(f"Trial {trial} - Crossover Rate (CO_R)", 0.0, 0.95, 0.8, 0.01, key=f"co{trial}")
-        mutation_rate = st.slider(f"Trial {trial} - Mutation Rate (MUT_R)", 0.01, 0.05, 0.02, 0.01, key=f"mu{trial}")
-        elitism_size = st.number_input(f"Trial {trial} - Elitism Size", 1, 5, 2, key=f"el{trial}")
+    if st.button("Run Genetic Algorithm"):
+        # Initialize schedule
+        initial_schedule = all_programs.copy()
+        random.shuffle(initial_schedule)
 
-        if st.button(f"Run Trial {trial}"):
-            initial_schedule = all_programs.copy()
-            random.shuffle(initial_schedule)
+        # Run GA
+        best_schedule = genetic_algorithm(initial_schedule, program_ratings, generations, population_size,
+                                          crossover_rate, mutation_rate, elitism_size, all_programs)
 
-            best_schedule = genetic_algorithm(initial_schedule, program_ratings, generations,
-                                              population_size, crossover_rate, mutation_rate,
-                                              elitism_size, all_programs)
+        # Compute fitness
+        total_rating = fitness_function(best_schedule, program_ratings)
 
-            total_rating = fitness_function(best_schedule, program_ratings)
+        # Display results
+        st.subheader("🗓️ Final Optimal Schedule")
+        result_df = pd.DataFrame({
+            "Time Slot": [f"{t:02d}:00" for t in all_time_slots[:len(best_schedule)]],
+            "Program": best_schedule
+        })
 
-            # Display results in a table
-            result_df = pd.DataFrame({
-                "Time Slot": [f"{t:02d}:00" for t in all_time_slots[:len(best_schedule)]],
-                "Program": best_schedule
-            })
-
-            st.dataframe(result_df)
-            st.success(f"⭐ Trial {trial} - Total Ratings: {total_rating:.2f}")
-
-            st.markdown("---")
+        st.dataframe(result_df)
+        st.success(f"⭐ Total Ratings: {total_rating:.2f}")
