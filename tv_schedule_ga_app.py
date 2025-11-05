@@ -4,7 +4,7 @@ import csv
 import random
 
 # ================================
-# 1. Read CSV (no upload needed)
+# 1. Read CSV (no upload)
 # ================================
 def read_csv_to_dict(file_path):
     program_ratings = {}
@@ -17,12 +17,12 @@ def read_csv_to_dict(file_path):
             program_ratings[program] = ratings
     return program_ratings
 
-# Load your CSV directly
-file_path = "program_ratings.csv"  # Ensure this file is in the same folder as app.py
+# Load dataset
+file_path = "program_ratings.csv"  # must be in same folder
 ratings = read_csv_to_dict(file_path)
 
 # ================================
-# 2. GA Functions (same as your original)
+# 2. Genetic Algorithm Functions
 # ================================
 def fitness_function(schedule):
     total_rating = 0
@@ -93,66 +93,69 @@ def genetic_algorithm(initial_schedule, generations, population_size, crossover_
 # ================================
 # 3. Streamlit Interface
 # ================================
-st.title("📺 TV Scheduling using Genetic Algorithm")
+st.title("📺 TV Scheduling using Genetic Algorithm (Three Trials)")
 
-all_programs = list(ratings.keys())
-all_time_slots = list(range(6, 24))  # 06:00–23:00
-
-# Fixed GA parameters (display only)
+# Fixed GA parameters
 GEN = 100
 POP = 50
 EL_S = 2
+all_programs = list(ratings.keys())
+all_time_slots = list(range(6, 24))  # 06:00–23:00
 
-st.sidebar.header("⚙️ Genetic Algorithm Parameters")
-
-# Display fixed parameters (non-editable)
-st.sidebar.markdown("**Fixed Parameters:**")
+# Display fixed parameters
+st.sidebar.header("⚙️ Fixed GA Parameters")
 st.sidebar.write(f"Generations (GEN): {GEN}")
 st.sidebar.write(f"Population Size (POP): {POP}")
 st.sidebar.write(f"Elitism Size (EL_S): {EL_S}")
 
-# Adjustable parameters
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Adjustable Parameters:**")
-crossover_rate = st.sidebar.slider("Crossover Rate (CO_R)", 0.0, 0.95, 0.8, 0.01)
-mutation_rate = st.sidebar.slider("Mutation Rate (MUT_R)", 0.01, 0.05, 0.02, 0.01)
+# Input 3 different trials for CO_R and MUT_R
+st.sidebar.header("🧪 Adjustable Parameters for Each Trial")
+trial_params = []
+for i in range(1, 4):
+    st.sidebar.subheader(f"Trial {i}")
+    co_r = st.sidebar.slider(f"Trial {i} - Crossover Rate (CO_R)", 0.0, 0.95, 0.8, 0.01, key=f"co_{i}")
+    mut_r = st.sidebar.slider(f"Trial {i} - Mutation Rate (MUT_R)", 0.01, 0.05, 0.02, 0.01, key=f"mut_{i}")
+    trial_params.append((co_r, mut_r))
 
-if st.button("Run Genetic Algorithm"):
-    # Initialize schedules
+if st.button("Run All Three Trials"):
     all_possible_schedules = initialize_pop(all_programs, all_time_slots)
     initial_best_schedule = finding_best_schedule(all_possible_schedules)
 
     rem_t_slots = len(all_time_slots) - len(initial_best_schedule)
-    genetic_schedule = genetic_algorithm(
-        initial_best_schedule,
-        generations=GEN,
-        population_size=POP,
-        crossover_rate=crossover_rate,
-        mutation_rate=mutation_rate,
-        elitism_size=EL_S,
-        all_programs=all_programs
-    )
 
-    final_schedule = initial_best_schedule + genetic_schedule[:rem_t_slots]
+    for i, (co_r, mut_r) in enumerate(trial_params, start=1):
+        st.subheader(f"🧩 Trial {i}: CO_R = {co_r}, MUT_R = {mut_r}")
 
-    # Match time slots length
-    num_slots = len(all_time_slots)
-    if len(final_schedule) < num_slots:
-        final_schedule += ["(Empty)"] * (num_slots - len(final_schedule))
-    elif len(final_schedule) > num_slots:
-        final_schedule = final_schedule[:num_slots]
+        genetic_schedule = genetic_algorithm(
+            initial_best_schedule,
+            generations=GEN,
+            population_size=POP,
+            crossover_rate=co_r,
+            mutation_rate=mut_r,
+            elitism_size=EL_S,
+            all_programs=all_programs
+        )
 
-    total_rating = fitness_function(final_schedule)
+        final_schedule = initial_best_schedule + genetic_schedule[:rem_t_slots]
 
-    # Display results
-    st.subheader("🗓️ Final Optimal Schedule")
-    result_df = pd.DataFrame({
-        "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
-        "Program": final_schedule
-    })
+        # Ensure full time coverage (6–23)
+        num_slots = len(all_time_slots)
+        if len(final_schedule) < num_slots:
+            final_schedule += ["(Empty)"] * (num_slots - len(final_schedule))
+        elif len(final_schedule) > num_slots:
+            final_schedule = final_schedule[:num_slots]
 
-    st.dataframe(result_df, use_container_width=True)
-    st.success(f"⭐ Total Ratings: {total_rating:.2f}")
+        total_rating = fitness_function(final_schedule)
+
+        # Display each trial's result
+        result_df = pd.DataFrame({
+            "Time Slot": [f"{t:02d}:00" for t in all_time_slots],
+            "Program": final_schedule
+        })
+
+        st.dataframe(result_df, use_container_width=True)
+        st.success(f"⭐ Total Ratings (Trial {i}): {total_rating:.2f}")
+        st.markdown("---")
 
 else:
-    st.info("👈 Adjust the crossover and mutation rate, then click **Run Genetic Algorithm** to view the schedule.")
+    st.info("👈 Set crossover and mutation rates for each trial, then click **Run All Three Trials**.")
